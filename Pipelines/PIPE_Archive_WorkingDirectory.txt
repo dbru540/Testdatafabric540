@@ -1,0 +1,72 @@
+{
+    "name": "PIPE_Archive_WorkingDirectory",
+    "properties": {
+        "activities": [
+            {
+                "name": "Archive Working Directory",
+                "type": "Copy",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "BinarySource",
+                        "storeSettings": {
+                            "type": "AzureBlobFSReadSettings",
+                            "recursive": true,
+                            "deleteFilesAfterCompletion": false
+                        },
+                        "formatSettings": {
+                            "type": "BinaryReadSettings"
+                        }
+                    },
+                    "sink": {
+                        "type": "BinarySink",
+                        "storeSettings": {
+                            "type": "AzureBlobFSWriteSettings"
+                        }
+                    },
+                    "enableStaging": false
+                },
+                "inputs": [
+                    {
+                        "referenceName": "ADLS_Binary_Folder",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "folderPath": "Working_Directory"
+                        }
+                    }
+                ],
+                "outputs": [
+                    {
+                        "referenceName": "ADLS_Binary_Folder",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "folderPath": {
+                                "value": "@concat(\n    'Backup/Archive_',\n    formatDateTime(\n        convertFromUtc(\n            pipeline().TriggerTime, 'Romance Standard Time'),\n            'yyyy-MM-dd_HH-mm-ss'\n    )\n)",
+                                "type": "Expression"
+                            }
+                        }
+                    }
+                ]
+            }
+        ],
+        "variables": {
+            "debug": {
+                "type": "String"
+            }
+        },
+        "folder": {
+            "name": "5_ArchiveWorkingDirectory"
+        },
+        "annotations": [],
+        "lastPublishTime": "2023-01-10T14:29:40Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

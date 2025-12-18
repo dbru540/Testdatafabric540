@@ -1,0 +1,58 @@
+{
+    "name": "PIPE_Email_Alerts",
+    "properties": {
+        "activities": [
+            {
+                "name": "Send email",
+                "type": "WebActivity",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "method": "POST",
+                    "headers": {
+                        "Content-Type": "application/JSON"
+                    },
+                    "url": {
+                        "value": "@pipeline().globalParameters.LogicApp_MyDSONotifications_POST_URL",
+                        "type": "Expression"
+                    },
+                    "body": {
+                        "value": "@concat(\n\t'{\n\t\t\"Filename\":\"',pipeline().parameters.Filename,'\",\n\t\t\"Failed_Activity_Description\":\"',pipeline().parameters.Failed_Activity_Description,'\",\n\t\t\"Error_Log\":\"', replace(pipeline().parameters.Error_Log, '\"',''''),'\",\n\t\t\"Pipeline_Time\":\"', \n\t\t\tconvertFromUtc(\n\t\t\t\tpipeline().TriggerTime,\n\t\t\t\t'Romance Standard Time',\n\t\t\t\t'dd/MM/yyyy à HH:mm:ss, \\Heure \\de Pari\\s'),'\",\n\t\t\"Recipients\":\"',pipeline().parameters.Recipients,'\",\n\t\t\"Environment\":\"',pipeline().globalParameters.SFTP_Environment,'\"\n\t}'\n)",
+                        "type": "Expression"
+                    }
+                }
+            }
+        ],
+        "parameters": {
+            "Filename": {
+                "type": "string",
+                "defaultValue": "test"
+            },
+            "Failed_Activity_Description": {
+                "type": "string",
+                "defaultValue": "test"
+            },
+            "Error_Log": {
+                "type": "string",
+                "defaultValue": "test"
+            },
+            "Recipients": {
+                "type": "string",
+                "defaultValue": "gabriel.ropers@apsia.eu"
+            }
+        },
+        "folder": {
+            "name": "99_EmailAlerts"
+        },
+        "annotations": [],
+        "lastPublishTime": "2023-01-10T14:29:39Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

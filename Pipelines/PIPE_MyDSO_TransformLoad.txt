@@ -1,0 +1,223 @@
+{
+    "name": "PIPE_MyDSO_TransformLoad",
+    "properties": {
+        "activities": [
+            {
+                "name": "SwitchTransformationDependingOnFile",
+                "type": "Switch",
+                "dependsOn": [],
+                "userProperties": [],
+                "typeProperties": {
+                    "on": {
+                        "value": "@concat(\n\tif(\n\t\tequals(pipeline().parameters.MyDSO_Account,'ESGCV - PARIS'), \n\t\t'ESGCV - PARIS_',\n\t\t''),\n\tsubstring(pipeline().parameters.FileName, 0, indexOf(pipeline().parameters.FileName, '_'))\n)",
+                        "type": "Expression"
+                    },
+                    "cases": [
+                        {
+                            "value": "client",
+                            "activities": [
+                                {
+                                    "name": "Transform Client",
+                                    "type": "ExecutePipeline",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "pipeline": {
+                                            "referenceName": "SUB_MyDSO_ClientTransfo",
+                                            "type": "PipelineReference"
+                                        },
+                                        "waitOnCompletion": true,
+                                        "parameters": {
+                                            "FileName": {
+                                                "value": "@pipeline().parameters.FileName",
+                                                "type": "Expression"
+                                            },
+                                            "MyDSO_Account": {
+                                                "value": "@pipeline().parameters.MyDSO_Account",
+                                                "type": "Expression"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "value": "contact",
+                            "activities": [
+                                {
+                                    "name": "Transform Contact",
+                                    "type": "ExecutePipeline",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "pipeline": {
+                                            "referenceName": "SUB_MyDSO_ContactTransfo",
+                                            "type": "PipelineReference"
+                                        },
+                                        "waitOnCompletion": true,
+                                        "parameters": {
+                                            "FileName": {
+                                                "value": "@pipeline().parameters.FileName",
+                                                "type": "Expression"
+                                            },
+                                            "MyDSO_Account": {
+                                                "value": "@pipeline().parameters.MyDSO_Account",
+                                                "type": "Expression"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "value": "piece",
+                            "activities": [
+                                {
+                                    "name": "Transform Piece",
+                                    "type": "ExecutePipeline",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "pipeline": {
+                                            "referenceName": "SUB_MyDSO_PieceTransfo",
+                                            "type": "PipelineReference"
+                                        },
+                                        "waitOnCompletion": true,
+                                        "parameters": {
+                                            "FileName": {
+                                                "value": "@pipeline().parameters.FileName",
+                                                "type": "Expression"
+                                            },
+                                            "MyDSO_Account": {
+                                                "value": "@pipeline().parameters.MyDSO_Account",
+                                                "type": "Expression"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "value": "ESGCV - PARIS_client",
+                            "activities": [
+                                {
+                                    "name": "Transform Client_Paris",
+                                    "type": "ExecutePipeline",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "pipeline": {
+                                            "referenceName": "SUB_MyDSO_ClientTransfo_Paris",
+                                            "type": "PipelineReference"
+                                        },
+                                        "waitOnCompletion": true,
+                                        "parameters": {
+                                            "FileName": {
+                                                "value": "@pipeline().parameters.FileName",
+                                                "type": "Expression"
+                                            },
+                                            "MyDSO_Account": {
+                                                "value": "@pipeline().parameters.MyDSO_Account",
+                                                "type": "Expression"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "value": "ESGCV - PARIS_contact",
+                            "activities": [
+                                {
+                                    "name": "Transform Contact_Paris",
+                                    "type": "ExecutePipeline",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "pipeline": {
+                                            "referenceName": "SUB_MyDSO_ContactTransfo_Paris",
+                                            "type": "PipelineReference"
+                                        },
+                                        "waitOnCompletion": true,
+                                        "parameters": {
+                                            "FileName": {
+                                                "value": "@pipeline().parameters.FileName",
+                                                "type": "Expression"
+                                            },
+                                            "MyDSO_Account": {
+                                                "value": "@pipeline().parameters.MyDSO_Account",
+                                                "type": "Expression"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "value": "ESGCV - PARIS_piece",
+                            "activities": [
+                                {
+                                    "name": "Transform Piece_Paris",
+                                    "type": "ExecutePipeline",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "pipeline": {
+                                            "referenceName": "SUB_MyDSO_PieceTransfo_Paris",
+                                            "type": "PipelineReference"
+                                        },
+                                        "waitOnCompletion": true,
+                                        "parameters": {
+                                            "FileName": {
+                                                "value": "@pipeline().parameters.FileName",
+                                                "type": "Expression"
+                                            },
+                                            "MyDSO_Account": {
+                                                "value": "@pipeline().parameters.MyDSO_Account",
+                                                "type": "Expression"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        ],
+        "parameters": {
+            "FileName": {
+                "type": "string",
+                "defaultValue": "piece_ggef_ESGCV MONTPELLIER.csv"
+            },
+            "MyDSO_Account": {
+                "type": "string",
+                "defaultValue": "ESGCV MONTPELLIER"
+            }
+        },
+        "folder": {
+            "name": "3_MyDSO_Files_Export"
+        },
+        "annotations": [],
+        "lastPublishTime": "2023-01-10T14:29:41Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

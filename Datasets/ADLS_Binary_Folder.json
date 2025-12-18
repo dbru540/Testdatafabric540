@@ -1,0 +1,27 @@
+{
+    "name": "ADLS_Binary_Folder",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "DataLakeStore",
+            "type": "LinkedServiceReference"
+        },
+        "parameters": {
+            "folderPath": {
+                "type": "string"
+            }
+        },
+        "annotations": [],
+        "type": "Binary",
+        "typeProperties": {
+            "location": {
+                "type": "AzureBlobFSLocation",
+                "folderPath": {
+                    "value": "@dataset().folderPath",
+                    "type": "Expression"
+                },
+                "fileSystem": "interface-mydso"
+            }
+        }
+    },
+    "type": "Microsoft.DataFactory/factories/datasets"
+}

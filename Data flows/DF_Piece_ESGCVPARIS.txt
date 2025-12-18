@@ -1,0 +1,224 @@
+parameters{
+	Filename as string ("piece_ggef_ESGCV - PARIS.csv"),
+	MyDSO_Account as string ("ESGCV - PARIS")
+}
+source(output(
+		{Code client *} as string,
+		{Montant initial HT} as string,
+		{Montant initial TTC *} as string,
+		{Montant restant HT} as string,
+		{Montant restant TTC} as string,
+		{Nom affaire} as string,
+		{Devise *} as string,
+		{Date echeance *} as string,
+		{Date emission *} as string,
+		{Date commande} as string,
+		{Date paiement} as string,
+		{Type de piece ERP} as string,
+		{Numero dossier} as string,
+		{Numero piece *} as string,
+		{Numero commande} as string,
+		{Acteur ADV} as string,
+		Commercial as string,
+		{Sens de l'écriture} as string,
+		{Type de piece *} as string,
+		{Identifiant piece unique} as string,
+		{Champ personnalisé #1} as string,
+		{Champ personnalisé #2} as string,
+		{Champ personnalisé #3} as string,
+		{Champ personnalisé #4} as string,
+		{Champ personnalisé #5} as string,
+		{Champ personnalisé #6} as string
+	),
+	allowSchemaDrift: false,
+	validateSchema: false,
+	ignoreNoFilesFound: false,
+	wildcardPaths:[(concat('Working_Directory/IN_D365_Files/', $Filename))]) ~> PieceD365
+source(output(
+		{Code client *} as string,
+		{Montant initial HT} as string,
+		{Montant initial TTC *} as string,
+		{Montant restant HT} as string,
+		{Montant restant TTC} as string,
+		{Nom affaire} as string,
+		{Devise *} as string,
+		{Date echeance *} as string,
+		{Date emission *} as string,
+		{Date commande} as string,
+		{Date paiement} as string,
+		{Type de piece ERP} as string,
+		{Numero dossier} as string,
+		{Numero piece *} as string,
+		{Numero commande} as string,
+		{Acteur ADV} as string,
+		Commercial as string,
+		{Sens de l'écriture} as string,
+		{Type de piece *} as string,
+		{Identifiant piece unique} as string,
+		{Champ personnalisé #1} as string,
+		{Champ personnalisé #2} as string,
+		{Champ personnalisé #3} as string,
+		{Champ personnalisé #4} as string,
+		{Champ personnalisé #5} as string,
+		{Champ personnalisé #6} as string
+	),
+	allowSchemaDrift: true,
+	validateSchema: false,
+	ignoreNoFilesFound: false,
+	wildcardPaths:[(concat('Working_Directory/IN_Sage_Files/', $Filename))]) ~> PieceSage
+source(output(
+		MYDSO_Account as string,
+		School_Name as string
+	),
+	allowSchemaDrift: true,
+	validateSchema: false,
+	ignoreNoFilesFound: false,
+	format: 'excel',
+	fileSystem: 'interface-mydso',
+	folderPath: 'Controls_Mapping',
+	fileName: 'MAPPING_MyDSOAccount-SchoolValidation.xlsx',
+	sheetIndex: 0,
+	firstRowAsHeader: true) ~> SchoolValidationList
+PieceD365, DropUselessColumns join(PieceD365@{Identifiant piece unique} == DropUselessColumns@{Identifiant piece unique},
+	joinType:'left',
+	matchType:'exact',
+	ignoreSpaces: false,
+	broadcast: 'auto')~> JoinSageFile
+PieceSage select(mapColumn(
+		{Code client *},
+		{Montant initial TTC *},
+		{Montant restant TTC},
+		{Devise *},
+		{Date echeance *},
+		{Date emission *},
+		{Date commande},
+		{Numero dossier},
+		{Numero piece *},
+		{Sens de l'écriture},
+		{Identifiant piece unique},
+		{Champ personnalisé #1},
+		{Champ personnalisé #2},
+		{Champ personnalisé #3},
+		{Champ personnalisé #4},
+		{Champ personnalisé #5},
+		{Champ personnalisé #6}
+	),
+	skipDuplicateMapInputs: true,
+	skipDuplicateMapOutputs: true) ~> DropUselessColumns
+JoinSageFile derive({Code client *} = coalesce(
+    PieceD365@{Code client *},
+    DropUselessColumns@{Code client *}
+),
+		{Montant initial TTC *} = coalesce(
+    PieceD365@{Montant initial TTC *},
+    DropUselessColumns@{Montant initial TTC *}
+),
+		{Montant restant TTC} = coalesce(
+    PieceD365@{Montant restant TTC},
+    DropUselessColumns@{Montant restant TTC}
+),
+		{Devise *} = coalesce(
+    PieceD365@{Devise *},
+    DropUselessColumns@{Devise *}
+),
+		{Date echeance *} = coalesce(
+    PieceD365@{Date echeance *},
+    DropUselessColumns@{Date echeance *}
+),
+		{Date emission *} = coalesce(
+    PieceD365@{Date emission *},
+    DropUselessColumns@{Date emission *}
+),
+		{Date commande} = coalesce(
+    PieceD365@{Date commande},
+    DropUselessColumns@{Date commande}
+),
+		{Numero dossier} = coalesce(
+    PieceD365@{Numero dossier},
+    DropUselessColumns@{Numero dossier}
+),
+		{Numero piece *} = coalesce(
+    PieceD365@{Numero piece *},
+    DropUselessColumns@{Numero piece *}
+),
+		{Sens de l'écriture} = coalesce(
+    PieceD365@{Sens de l'écriture},
+    DropUselessColumns@{Sens de l'écriture}
+),
+		{Identifiant piece unique} = coalesce(
+    PieceD365@{Identifiant piece unique},
+    DropUselessColumns@{Identifiant piece unique}
+),
+		{Champ personnalisé #1} = coalesce(
+    PieceD365@{Champ personnalisé #1},
+    DropUselessColumns@{Champ personnalisé #1}
+),
+		{Champ personnalisé #2} = coalesce(
+    PieceD365@{Champ personnalisé #2},
+    DropUselessColumns@{Champ personnalisé #2}
+),
+		{Champ personnalisé #3} = coalesce(
+    PieceD365@{Champ personnalisé #3},
+    DropUselessColumns@{Champ personnalisé #3}
+),
+		{Champ personnalisé #4} = coalesce(
+    PieceD365@{Champ personnalisé #4},
+    DropUselessColumns@{Champ personnalisé #4}
+),
+		{Champ personnalisé #5} = coalesce(
+    PieceD365@{Champ personnalisé #5},
+    DropUselessColumns@{Champ personnalisé #5}
+),
+		{Champ personnalisé #6} = coalesce(
+    PieceD365@{Champ personnalisé #6},
+    DropUselessColumns@{Champ personnalisé #6}
+)) ~> CreateCorrectColumns
+PieceD365 aggregate(groupBy({Champ personnalisé #2}),
+	Count = count({Champ personnalisé #2})) ~> SchoolsExist
+PieceSage, SchoolsExist exists(PieceSage@{Champ personnalisé #2} == SchoolsExist@{Champ personnalisé #2},
+	negate:true,
+	broadcast: 'auto')~> FilterNotExistSchools
+CreateCorrectColumns, FilterNotExistSchools union(byName: true)~> UnionMissingSchools
+SchoolValidationList filter(toString(MYDSO_Account) == $MyDSO_Account) ~> SelectMyDSOAccount
+UnionMissingSchools, SelectMyDSOAccount exists(lower({Champ personnalisé #2}) == lower(School_Name),
+	negate:true,
+	broadcast: 'auto')~> AssertSchoolValidationFailed
+UnionMissingSchools, SelectMyDSOAccount exists(lower({Champ personnalisé #2}) == lower(School_Name),
+	negate:false,
+	broadcast: 'auto')~> AssertSchoolValidationSuccess
+AssertSchoolValidationSuccess sink(allowSchemaDrift: true,
+	validateSchema: false,
+	format: 'delimited',
+	fileSystem: 'interface-mydso',
+	folderPath: 'Working_Directory/OUT_MyDSO__Temp_Files',
+	rowDelimiter: ('\r\n'),
+	columnDelimiter: ';',
+	escapeChar: '\"',
+	quoteChar: '\"',
+	encodingName: 'WINDOWS-1252',
+	columnNamesAsHeader: true,
+	partitionFileNames:[($Filename)],
+	umask: 0022,
+	preCommands: [],
+	postCommands: [],
+	skipDuplicateMapInputs: true,
+	skipDuplicateMapOutputs: true,
+	partitionBy('hash', 1)) ~> ExportFile
+AssertSchoolValidationFailed sink(allowSchemaDrift: true,
+	validateSchema: false,
+	format: 'delimited',
+	fileSystem: 'interface-mydso',
+	folderPath: 'Working_Directory/OUT_MyDSO__Temp_FilesKO',
+	rowDelimiter: ('\r\n'),
+	columnDelimiter: ';',
+	escapeChar: '\"',
+	quoteChar: '\"',
+	encodingName: 'WINDOWS-1252',
+	columnNamesAsHeader: true,
+	partitionFileNames:[($Filename)],
+	umask: 0022,
+	preCommands: [],
+	postCommands: [],
+	skipDuplicateMapInputs: true,
+	skipDuplicateMapOutputs: true,
+	partitionBy('hash', 1)) ~> ExportFileKO

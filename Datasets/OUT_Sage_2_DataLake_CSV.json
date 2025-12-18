@@ -1,0 +1,26 @@
+{
+    "name": "OUT_Sage_2_DataLake_CSV",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "DataLakeStore",
+            "type": "LinkedServiceReference"
+        },
+        "folder": {
+            "name": "2_Sage_Files_Import"
+        },
+        "annotations": [],
+        "type": "DelimitedText",
+        "typeProperties": {
+            "location": {
+                "type": "AzureBlobFSLocation",
+                "folderPath": "Working_Directory/IN_Sage_Files",
+                "fileSystem": "interface-mydso"
+            },
+            "columnDelimiter": ";",
+            "escapeChar": "\\",
+            "quoteChar": "\""
+        },
+        "schema": []
+    },
+    "type": "Microsoft.DataFactory/factories/datasets"
+}

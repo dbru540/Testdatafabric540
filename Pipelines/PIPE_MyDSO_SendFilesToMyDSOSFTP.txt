@@ -1,0 +1,92 @@
+{
+    "name": "PIPE_MyDSO_SendFilesToMyDSOSFTP",
+    "properties": {
+        "activities": [
+            {
+                "name": "LogicApps Call to drop File on MyDSO FTPs",
+                "type": "WebActivity",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "method": "POST",
+                    "headers": {
+                        "Content-Type": "application/JSON"
+                    },
+                    "url": {
+                        "value": "@pipeline().globalParameters.LogicApp_MyDSODrop_POST_URL",
+                        "type": "Expression"
+                    },
+                    "body": {
+                        "value": "@concat(\n'{\"FileName\":\"',\npipeline().parameters.FileName,\n'\",\"MyDSOAccount\":\"',\npipeline().parameters.MyDSO_Account,\n'\"}')",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "Error_Email Drop_Failed_SFTP_MyDSO",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "LogicApps Call to drop File on MyDSO FTPs",
+                        "dependencyConditions": [
+                            "Failed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "PIPE_Email_Alerts",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": false,
+                    "parameters": {
+                        "Filename": {
+                            "value": "@pipeline().parameters.FileName",
+                            "type": "Expression"
+                        },
+                        "Failed_Activity_Description": "Impossible de déposer le fichier sur le serveur MyDSO",
+                        "Error_Log": {
+                            "value": "@activity('LogicApps Call to drop File on MyDSO FTPs').output.error.message",
+                            "type": "Expression"
+                        },
+                        "Pipeline_Time": {
+                            "value": "@pipeline().TriggerTime",
+                            "type": "Expression"
+                        },
+                        "Recipients": {
+                            "value": "@pipeline().globalParameters.LogicApp_MyDSONotifications_EmailRecipients",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            }
+        ],
+        "parameters": {
+            "FileName": {
+                "type": "string",
+                "defaultValue": "client_ggef_ESGCV MONTPELLIER.csv"
+            },
+            "MyDSO_Account": {
+                "type": "string",
+                "defaultValue": "ESGCV MONTPELLIER"
+            }
+        },
+        "folder": {
+            "name": "4_SendToMyDSO"
+        },
+        "annotations": [],
+        "lastPublishTime": "2023-01-10T14:29:39Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

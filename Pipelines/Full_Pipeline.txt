@@ -1,0 +1,292 @@
+{
+    "name": "Full_Pipeline",
+    "properties": {
+        "activities": [
+            {
+                "name": "Lookup Childitems in Old Folder",
+                "description": "Collect the list of ChildItems in Old Folder",
+                "type": "GetMetadata",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "dataset": {
+                        "referenceName": "IN_Sage_2_DataLake_CSV",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "SFTP_Environment": {
+                                "value": "@pipeline().globalParameters.SFTP_Environment",
+                                "type": "Expression"
+                            }
+                        }
+                    },
+                    "fieldList": [
+                        "childItems"
+                    ],
+                    "storeSettings": {
+                        "type": "SftpReadSettings",
+                        "recursive": true,
+                        "enablePartitionDiscovery": false,
+                        "disableChunking": false
+                    },
+                    "formatSettings": {
+                        "type": "DelimitedTextReadSettings"
+                    }
+                }
+            },
+            {
+                "name": "Process files if Old has ChildItems",
+                "type": "IfCondition",
+                "dependsOn": [
+                    {
+                        "activity": "Lookup Childitems in Old Folder",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    },
+                    {
+                        "activity": "Import Old Files",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    },
+                    {
+                        "activity": "Import D365 Files",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@not(empty(activity('Lookup Childitems in Old Folder').output.childItems))",
+                        "type": "Expression"
+                    },
+                    "ifFalseActivities": [
+                        {
+                            "name": "Alert OldFolder_Empty",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "policy": {
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "PIPE_Email_Alerts",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": false,
+                                "parameters": {
+                                    "Filename": "Tous les fichiers",
+                                    "Failed_Activity_Description": "Aucun fichier n'a été trouvé dans le dossier Old du SFTP. Le traitement a été interrompu",
+                                    "Error_Log": "-",
+                                    "Pipeline_Time": {
+                                        "value": "@pipeline().TriggerTime",
+                                        "type": "Expression"
+                                    },
+                                    "Recipients": {
+                                        "value": "@pipeline().globalParameters.LogicApp_MyDSONotifications_EmailRecipients",
+                                        "type": "Expression"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "ifTrueActivities": [
+                        {
+                            "name": "Process Files",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "policy": {
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "PIPE_MyDSO_ListFiles",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Import D365 Files",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Delete Working Directory",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "PIPE_D365_Files_Import",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true
+                }
+            },
+            {
+                "name": "Import Old Files",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Delete Working Directory",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "PIPE_Old_Files_Import",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true
+                }
+            },
+            {
+                "name": "Delete Working Directory",
+                "type": "Delete",
+                "dependsOn": [
+                    {
+                        "activity": "Lookup Childitems in Old Folder",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "dataset": {
+                        "referenceName": "ADLS_Binary_Folder",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "folderPath": "Working_Directory"
+                        }
+                    },
+                    "enableLogging": false,
+                    "storeSettings": {
+                        "type": "AzureBlobFSReadSettings",
+                        "recursive": true,
+                        "enablePartitionDiscovery": false
+                    }
+                }
+            },
+            {
+                "name": "Check WorkingDirectory exists",
+                "type": "GetMetadata",
+                "dependsOn": [
+                    {
+                        "activity": "Process files if Old has ChildItems",
+                        "dependencyConditions": [
+                            "Succeeded",
+                            "Failed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.00:05:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "dataset": {
+                        "referenceName": "ADLS_Binary_Folder",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "folderPath": "Working_Directory"
+                        }
+                    },
+                    "fieldList": [
+                        "exists"
+                    ],
+                    "storeSettings": {
+                        "type": "AzureBlobFSReadSettings",
+                        "recursive": true,
+                        "enablePartitionDiscovery": false
+                    },
+                    "formatSettings": {
+                        "type": "BinaryReadSettings"
+                    }
+                }
+            },
+            {
+                "name": "Archive If Directory exists",
+                "type": "IfCondition",
+                "dependsOn": [
+                    {
+                        "activity": "Check WorkingDirectory exists",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@activity('Check WorkingDirectory exists').output.exists",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "Archive WorkingDirectory",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "policy": {
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "PIPE_Archive_WorkingDirectory",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true
+                            }
+                        }
+                    ]
+                }
+            }
+        ],
+        "variables": {
+            "debug": {
+                "type": "Boolean"
+            }
+        },
+        "annotations": [],
+        "lastPublishTime": "2023-01-10T14:29:42Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

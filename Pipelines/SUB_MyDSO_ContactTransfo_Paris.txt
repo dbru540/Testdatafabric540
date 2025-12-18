@@ -1,0 +1,569 @@
+{
+    "name": "SUB_MyDSO_ContactTransfo_Paris",
+    "properties": {
+        "activities": [
+            {
+                "name": "File_Transformation",
+                "type": "ExecuteDataFlow",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "1.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "dataflow": {
+                        "referenceName": "DF_Contact_ESGCVPARIS",
+                        "type": "DataFlowReference",
+                        "parameters": {
+                            "Filename": {
+                                "value": "'@{pipeline().parameters.FileName}'",
+                                "type": "Expression"
+                            },
+                            "MyDSO_Account": {
+                                "value": "'@{pipeline().parameters.MyDSO_Account}'",
+                                "type": "Expression"
+                            }
+                        }
+                    },
+                    "integrationRuntime": {
+                        "referenceName": "AzureIntegrationRuntimeContinuous",
+                        "type": "IntegrationRuntimeReference"
+                    },
+                    "traceLevel": "Fine"
+                }
+            },
+            {
+                "name": "Save_NEW_File SFTPFolder",
+                "type": "Copy",
+                "dependsOn": [
+                    {
+                        "activity": "File_Transformation",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "DelimitedTextSource",
+                        "storeSettings": {
+                            "type": "AzureBlobFSReadSettings",
+                            "recursive": false,
+                            "enablePartitionDiscovery": false
+                        },
+                        "formatSettings": {
+                            "type": "DelimitedTextReadSettings"
+                        }
+                    },
+                    "sink": {
+                        "type": "DelimitedTextSink",
+                        "storeSettings": {
+                            "type": "SftpWriteSettings",
+                            "operationTimeout": "01:00:00",
+                            "useTempFileRename": true
+                        },
+                        "formatSettings": {
+                            "type": "DelimitedTextWriteSettings",
+                            "quoteAllText": true,
+                            "fileExtension": ".csv"
+                        }
+                    },
+                    "enableStaging": false,
+                    "translator": {
+                        "type": "TabularTranslator",
+                        "mappings": [
+                            {
+                                "source": {
+                                    "name": "Code client *",
+                                    "type": "String",
+                                    "physicalType": "String"
+                                },
+                                "sink": {
+                                    "name": "\"Code client *\"",
+                                    "physicalType": "String"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "Role",
+                                    "type": "String",
+                                    "physicalType": "String"
+                                },
+                                "sink": {
+                                    "name": "\"Role\"",
+                                    "physicalType": "String"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "Contact pour le recouvrement",
+                                    "type": "String",
+                                    "physicalType": "String"
+                                },
+                                "sink": {
+                                    "name": "\"Contact pour le recouvrement\"",
+                                    "physicalType": "String"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "Nom*",
+                                    "type": "String",
+                                    "physicalType": "String"
+                                },
+                                "sink": {
+                                    "name": "\"Nom*\"",
+                                    "physicalType": "String"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "Prenom",
+                                    "type": "String",
+                                    "physicalType": "String"
+                                },
+                                "sink": {
+                                    "name": "\"Prenom\"",
+                                    "physicalType": "String"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "Telephone",
+                                    "type": "String",
+                                    "physicalType": "String"
+                                },
+                                "sink": {
+                                    "name": "\"Telephone\"",
+                                    "physicalType": "String"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "E-mail",
+                                    "type": "String",
+                                    "physicalType": "String"
+                                },
+                                "sink": {
+                                    "name": "\"E-mail\"",
+                                    "physicalType": "String"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "Civilité",
+                                    "type": "String",
+                                    "physicalType": "String"
+                                },
+                                "sink": {
+                                    "name": "\"Civilité\"",
+                                    "physicalType": "String"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "Telephone portable",
+                                    "type": "String",
+                                    "physicalType": "String"
+                                },
+                                "sink": {
+                                    "name": "\"Telephone portable\"",
+                                    "physicalType": "String"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "Commentaires",
+                                    "type": "String",
+                                    "physicalType": "String"
+                                },
+                                "sink": {
+                                    "name": "\"Commentaires\"",
+                                    "physicalType": "String"
+                                }
+                            }
+                        ],
+                        "typeConversion": true,
+                        "typeConversionSettings": {
+                            "allowDataTruncation": false,
+                            "treatBooleanAsNumber": false,
+                            "culture": "fr-fr"
+                        }
+                    }
+                },
+                "inputs": [
+                    {
+                        "referenceName": "OUT_Datalake_Write_Temp",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "folderPath": "Working_Directory/OUT_MyDSO__Temp_Files",
+                            "fileName": {
+                                "value": "@pipeline().parameters.FileName",
+                                "type": "Expression"
+                            }
+                        }
+                    }
+                ],
+                "outputs": [
+                    {
+                        "referenceName": "OUT_Datalake_2_SFTP_Write_NEW",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "SFTP_Environment": {
+                                "value": "@pipeline().globalParameters.SFTP_Environment",
+                                "type": "Expression"
+                            },
+                            "Filename": {
+                                "value": "@pipeline().parameters.FileName",
+                                "type": "Expression"
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "Save_NEW_File ADLSFolder",
+                "type": "Copy",
+                "dependsOn": [
+                    {
+                        "activity": "File_Transformation",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "DelimitedTextSource",
+                        "storeSettings": {
+                            "type": "AzureBlobFSReadSettings",
+                            "recursive": false,
+                            "enablePartitionDiscovery": false
+                        },
+                        "formatSettings": {
+                            "type": "DelimitedTextReadSettings"
+                        }
+                    },
+                    "sink": {
+                        "type": "DelimitedTextSink",
+                        "storeSettings": {
+                            "type": "AzureBlobFSWriteSettings"
+                        },
+                        "formatSettings": {
+                            "type": "DelimitedTextWriteSettings",
+                            "quoteAllText": true,
+                            "fileExtension": ".csv"
+                        }
+                    },
+                    "enableStaging": false,
+                    "translator": {
+                        "type": "TabularTranslator",
+                        "mappings": [
+                            {
+                                "source": {
+                                    "name": "Code client *",
+                                    "type": "String",
+                                    "physicalType": "String"
+                                },
+                                "sink": {
+                                    "name": "\"Code client *\"",
+                                    "physicalType": "String"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "Role",
+                                    "type": "String",
+                                    "physicalType": "String"
+                                },
+                                "sink": {
+                                    "name": "\"Role\"",
+                                    "physicalType": "String"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "Contact pour le recouvrement",
+                                    "type": "String",
+                                    "physicalType": "String"
+                                },
+                                "sink": {
+                                    "name": "\"Contact pour le recouvrement\"",
+                                    "physicalType": "String"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "Nom*",
+                                    "type": "String",
+                                    "physicalType": "String"
+                                },
+                                "sink": {
+                                    "name": "\"Nom*\"",
+                                    "physicalType": "String"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "Prenom",
+                                    "type": "String",
+                                    "physicalType": "String"
+                                },
+                                "sink": {
+                                    "name": "\"Prenom\"",
+                                    "physicalType": "String"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "Telephone",
+                                    "type": "String",
+                                    "physicalType": "String"
+                                },
+                                "sink": {
+                                    "name": "\"Telephone\"",
+                                    "physicalType": "String"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "E-mail",
+                                    "type": "String",
+                                    "physicalType": "String"
+                                },
+                                "sink": {
+                                    "name": "\"E-mail\"",
+                                    "physicalType": "String"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "Civilité",
+                                    "type": "String",
+                                    "physicalType": "String"
+                                },
+                                "sink": {
+                                    "name": "\"Civilité\"",
+                                    "physicalType": "String"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "Telephone portable",
+                                    "type": "String",
+                                    "physicalType": "String"
+                                },
+                                "sink": {
+                                    "name": "\"Telephone portable\"",
+                                    "physicalType": "String"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "Commentaires",
+                                    "type": "String",
+                                    "physicalType": "String"
+                                },
+                                "sink": {
+                                    "name": "\"Commentaires\"",
+                                    "physicalType": "String"
+                                }
+                            }
+                        ],
+                        "typeConversion": true,
+                        "typeConversionSettings": {
+                            "allowDataTruncation": false,
+                            "treatBooleanAsNumber": false,
+                            "culture": "fr-fr"
+                        }
+                    }
+                },
+                "inputs": [
+                    {
+                        "referenceName": "OUT_Datalake_Write_Temp",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "folderPath": "Working_Directory/OUT_MyDSO__Temp_Files",
+                            "fileName": {
+                                "value": "@pipeline().parameters.FileName",
+                                "type": "Expression"
+                            }
+                        }
+                    }
+                ],
+                "outputs": [
+                    {
+                        "referenceName": "OUT_Datalake_2_Datalake_Write_NEW",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "folderPath": "Working_Directory/OUT_MyDSO_New_Files",
+                            "fileName": {
+                                "value": "@pipeline().parameters.FileName",
+                                "type": "Expression"
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "Error_Email NEW_To_SFTP",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Save_NEW_File SFTPFolder",
+                        "dependencyConditions": [
+                            "Failed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "PIPE_Email_Alerts",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": false,
+                    "parameters": {
+                        "Filename": {
+                            "value": "@pipeline().parameters.FileName",
+                            "type": "Expression"
+                        },
+                        "Failed_Activity_Description": "Impossible de sauvegarder le fichier transformé sur le SFTP (Dossier 'New')",
+                        "Error_Log": {
+                            "value": "@activity('Save_NEW_File SFTPFolder').Error.Message",
+                            "type": "Expression"
+                        },
+                        "Pipeline_Time": {
+                            "value": "@pipeline().TriggerTime",
+                            "type": "Expression"
+                        },
+                        "Recipients": {
+                            "value": "@pipeline().globalParameters.LogicApp_MyDSONotifications_EmailRecipients",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "Send_Files To_MyDSO",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Save_NEW_File ADLSFolder",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    },
+                    {
+                        "activity": "Save_NEW_File SFTPFolder",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "PIPE_MyDSO_SendFilesToMyDSOSFTP",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": false,
+                    "parameters": {
+                        "FileName": {
+                            "value": "@pipeline().parameters.FileName",
+                            "type": "Expression"
+                        },
+                        "MyDSO_Account": {
+                            "value": "@pipeline().parameters.MyDSO_Account",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "Error_Email File_Transformation_Failed",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "File_Transformation",
+                        "dependencyConditions": [
+                            "Failed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "PIPE_Email_Alerts",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": false,
+                    "parameters": {
+                        "Filename": {
+                            "value": "@pipeline().parameters.FileName",
+                            "type": "Expression"
+                        },
+                        "Failed_Activity_Description": "La transformation du fichier a échoué",
+                        "Error_Log": {
+                            "value": "@activity('File_Transformation').Error.Message",
+                            "type": "Expression"
+                        },
+                        "Pipeline_Time": {
+                            "value": "@pipeline().TriggerTime",
+                            "type": "Expression"
+                        },
+                        "Recipients": {
+                            "value": "@pipeline().globalParameters.LogicApp_MyDSONotifications_EmailRecipients",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            }
+        ],
+        "parameters": {
+            "FileName": {
+                "type": "string",
+                "defaultValue": "contact_ggef_ESGCV - PARIS.csv"
+            },
+            "MyDSO_Account": {
+                "type": "string",
+                "defaultValue": "ESGCV - PARIS"
+            }
+        },
+        "folder": {
+            "name": "3_MyDSO_Files_Export/SUB_FilesTransformations"
+        },
+        "annotations": [],
+        "lastPublishTime": "2023-01-10T14:29:41Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

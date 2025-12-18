@@ -1,0 +1,30 @@
+{
+    "name": "IN_DataLakeD365_2_MyDSO_CSV",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "DataLakeStore",
+            "type": "LinkedServiceReference"
+        },
+        "folder": {
+            "name": "3_MyDSO_Files_Export/IN_ADLS_Files"
+        },
+        "annotations": [],
+        "type": "DelimitedText",
+        "typeProperties": {
+            "location": {
+                "type": "AzureBlobFSLocation",
+                "fileSystem": "interface-mydso"
+            },
+            "columnDelimiter": ";",
+            "rowDelimiter": {
+                "value": "\r\n",
+                "type": "Expression"
+            },
+            "escapeChar": "\"",
+            "firstRowAsHeader": true,
+            "quoteChar": "\""
+        },
+        "schema": []
+    },
+    "type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,182 @@
+{
+    "name": "PIPE_MyDSO_ListFiles",
+    "properties": {
+        "activities": [
+            {
+                "name": "Get_Filenames",
+                "type": "GetMetadata",
+                "dependsOn": [
+                    {
+                        "activity": "Clear_SFTPFolder New",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    },
+                    {
+                        "activity": "Clear_SFTPFolder NewKO",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "dataset": {
+                        "referenceName": "IN_DataLake_2_MyDSO_CSV_GetFilenames",
+                        "type": "DatasetReference"
+                    },
+                    "fieldList": [
+                        "childItems"
+                    ],
+                    "storeSettings": {
+                        "type": "AzureBlobFSReadSettings",
+                        "recursive": true,
+                        "enablePartitionDiscovery": false
+                    },
+                    "formatSettings": {
+                        "type": "DelimitedTextReadSettings"
+                    }
+                }
+            },
+            {
+                "name": "Iterate_Over_Files",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "Get_Filenames",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('Get_Filenames').output.childItems",
+                        "type": "Expression"
+                    },
+                    "isSequential": false,
+                    "activities": [
+                        {
+                            "name": "Transform and Load File",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "policy": {
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "PIPE_MyDSO_TransformLoad",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true,
+                                "parameters": {
+                                    "FileName": {
+                                        "value": "@item().name",
+                                        "type": "Expression"
+                                    },
+                                    "MyDSO_Account": {
+                                        "value": "@substring(\n    item().name, \n    add(\n        lastIndexOf(item().name, '_'),\n        1\n    ),\n    sub(\n        sub(\n            length(item().name),\n            lastIndexOf(item().name, '_')\n        ),\n        5\n    )\n)",
+                                        "type": "Expression"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Clear_SFTPFolder New",
+                "type": "Delete",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "dataset": {
+                        "referenceName": "OUT_Datalake_2_SFTP_Write_NEW",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "SFTP_Environment": {
+                                "value": "@pipeline().globalParameters.SFTP_Environment",
+                                "type": "Expression"
+                            },
+                            "Filename": {
+                                "value": "@variables('Filename')",
+                                "type": "Expression"
+                            }
+                        }
+                    },
+                    "enableLogging": false,
+                    "storeSettings": {
+                        "type": "SftpReadSettings",
+                        "recursive": false,
+                        "enablePartitionDiscovery": false
+                    }
+                }
+            },
+            {
+                "name": "Clear_SFTPFolder NewKO",
+                "type": "Delete",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "dataset": {
+                        "referenceName": "OUT_Datalake_2_SFTP_Write_NEWError",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "SFTP_Environment": {
+                                "value": "@pipeline().globalParameters.SFTP_Environment",
+                                "type": "Expression"
+                            },
+                            "Filename": {
+                                "value": "@variables('Filename')",
+                                "type": "Expression"
+                            }
+                        }
+                    },
+                    "enableLogging": false,
+                    "storeSettings": {
+                        "type": "SftpReadSettings",
+                        "recursive": false,
+                        "enablePartitionDiscovery": false
+                    }
+                }
+            }
+        ],
+        "variables": {
+            "Filename": {
+                "type": "String"
+            },
+            "MyDSO_Account": {
+                "type": "String"
+            }
+        },
+        "folder": {
+            "name": "3_MyDSO_Files_Export"
+        },
+        "annotations": [],
+        "lastPublishTime": "2023-01-10T14:29:42Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

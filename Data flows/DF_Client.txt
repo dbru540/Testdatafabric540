@@ -1,0 +1,290 @@
+parameters{
+	Filename as string ("client_ggef_ESGCV LYON.csv"),
+	MyDSO_Account as string ("ESGCV LYON")
+}
+source(output(
+		{Champ personnalisé #2} as string,
+		Groupes as string,
+		{Code client *} as string,
+		{Societe / Raison sociale *} as string,
+		Siret as string,
+		{Numero de TVA} as string,
+		{Moyen de paiement} as string,
+		{Champ personnalisé #5} as string,
+		{Champ personnalisé #6} as string,
+		{Champ personnalisé #1} as string,
+		{Compte bloque} as string,
+		{Compte bloque / Date} as string,
+		{Champ personnalisé #4} as string,
+		Marche as string,
+		{Client / Commentaires} as string,
+		{Champ personnalisé #3} as string,
+		Telephone as string,
+		{Telephone portable} as string,
+		{E-mail} as string,
+		{Adresse (n° Rue)} as string,
+		{Adresse (Rue)} as string,
+		{Adresse (Boite postale)} as string,
+		{Adresse (Departement / Region)} as string,
+		{Adresse (Code postal)} as string,
+		{Adresse (Ville)} as string,
+		{Adresse (Pays)} as string,
+		{Risque / Type de garantie} as string,
+		{Site internet} as string
+	),
+	allowSchemaDrift: true,
+	validateSchema: false,
+	ignoreNoFilesFound: false,
+	wildcardPaths:[(concat('Working_Directory/IN_D365_Files/', $Filename))]) ~> ClientD365
+source(output(
+		{Champ personnalisé #2} as string,
+		Groupes as string,
+		{Code client *} as string,
+		{Societe / Raison sociale *} as string,
+		Siret as string,
+		{Numero de TVA} as string,
+		{Moyen de paiement} as string,
+		{Champ personnalisé #5} as string,
+		{Champ personnalisé #6} as string,
+		{Champ personnalisé #1} as string,
+		{Compte bloque} as string,
+		{Compte bloque / Date} as string,
+		{Champ personnalisé #4} as string,
+		Marche as string,
+		{Client / Commentaires} as string,
+		{Champ personnalisé #3} as string,
+		Telephone as string,
+		{Telephone portable} as string,
+		{E-mail} as string,
+		{Adresse (n° Rue)} as string,
+		{Adresse (Rue)} as string,
+		{Adresse (Boite postale)} as string,
+		{Adresse (Departement / Region)} as string,
+		{Adresse (Code postal)} as string,
+		{Adresse (Ville)} as string,
+		{Adresse (Pays)} as string,
+		{Risque / Type de garantie} as string,
+		{Site Internet} as string
+	),
+	allowSchemaDrift: true,
+	validateSchema: false,
+	ignoreNoFilesFound: false,
+	wildcardPaths:[(concat('Working_Directory/IN_Sage_Files/', $Filename))]) ~> ClientSage
+source(output(
+		MYDSO_Account as string,
+		School_Name as string
+	),
+	allowSchemaDrift: true,
+	validateSchema: false,
+	ignoreNoFilesFound: false,
+	format: 'excel',
+	fileSystem: 'interface-mydso',
+	folderPath: 'Controls_Mapping',
+	fileName: 'MAPPING_MyDSOAccount-SchoolValidation.xlsx',
+	sheetIndex: 0,
+	firstRowAsHeader: true) ~> SchoolValidationTable
+ClientD365, DropUnusedColumns join(ClientD365@{Code client *} == DropUnusedColumns@{Code client *},
+	joinType:'left',
+	matchType:'exact',
+	ignoreSpaces: false,
+	broadcast: 'auto')~> JoinSageFile
+CreateCorrectValues select(mapColumn(
+		{Champ personnalisé #2},
+		Groupes,
+		{Code client *} = ClientD365@{Code client *},
+		{Societe / Raison sociale *},
+		Siret,
+		{Numero de TVA},
+		{Moyen de paiement},
+		{Champ personnalisé #5},
+		{Champ personnalisé #6},
+		{Champ personnalisé #1},
+		{Compte bloque},
+		{Compte bloque / Date},
+		{Champ personnalisé #4},
+		Marche,
+		{Client / Commentaires},
+		{Champ personnalisé #3},
+		Telephone,
+		{Telephone portable},
+		{E-mail},
+		{Adresse (n° Rue)},
+		{Adresse (Rue)},
+		{Adresse (Boite postale)},
+		{Adresse (Departement / Region)},
+		{Adresse (Code postal)},
+		{Adresse (Ville)},
+		{Adresse (Pays)},
+		{Risque / Type de garantie},
+		{Site internet} = CreateCorrectValues@{Site internet}
+	),
+	skipDuplicateMapInputs: true,
+	skipDuplicateMapOutputs: true) ~> DropOldColumns
+ClientSage select(mapColumn(
+		{Champ personnalisé #2},
+		Groupes,
+		{Code client *},
+		{Societe / Raison sociale *},
+		Siret,
+		{Numero de TVA},
+		{Moyen de paiement},
+		{Champ personnalisé #5},
+		{Champ personnalisé #6},
+		{Champ personnalisé #1},
+		{Compte bloque},
+		{Compte bloque / Date},
+		{Champ personnalisé #4},
+		{Champ personnalisé #3},
+		Telephone,
+		{Telephone portable},
+		{E-mail},
+		{Adresse (n° Rue)},
+		{Adresse (Rue)},
+		{Adresse (Departement / Region)},
+		{Adresse (Code postal)},
+		{Adresse (Ville)},
+		{Adresse (Pays)},
+		{Site Internet}
+	),
+	skipDuplicateMapInputs: true,
+	skipDuplicateMapOutputs: true) ~> DropUnusedColumns
+JoinSageFile derive({Champ personnalisé #2} = coalesce(
+    ClientD365@{Champ personnalisé #2}, 
+    DropUnusedColumns@{Champ personnalisé #2}
+),
+		Groupes = coalesce(
+    ClientD365@Groupes, 
+    DropUnusedColumns@Groupes
+),
+		{Societe / Raison sociale *} = coalesce(
+    ClientD365@{Societe / Raison sociale *}, 
+    DropUnusedColumns@{Societe / Raison sociale *}
+),
+		Siret = coalesce(
+    ClientD365@Siret, 
+    DropUnusedColumns@Siret
+),
+		{Numero de TVA} = coalesce(
+    ClientD365@{Numero de TVA}, 
+    DropUnusedColumns@{Numero de TVA}
+),
+		{Moyen de paiement} = coalesce(
+    ClientD365@{Moyen de paiement}, 
+    DropUnusedColumns@{Moyen de paiement}
+),
+		{Champ personnalisé #5} = coalesce(
+    ClientD365@{Champ personnalisé #5}, 
+    DropUnusedColumns@{Champ personnalisé #5}
+),
+		{Champ personnalisé #6} = coalesce(
+    ClientD365@{Champ personnalisé #6}, 
+    DropUnusedColumns@{Champ personnalisé #6}
+),
+		{Champ personnalisé #1} = coalesce(
+    ClientD365@{Champ personnalisé #1}, 
+    DropUnusedColumns@{Champ personnalisé #1}
+),
+		{Compte bloque} = coalesce(
+    ClientD365@{Compte bloque}, 
+    DropUnusedColumns@{Compte bloque}
+),
+		{Compte bloque / Date} = coalesce(
+    ClientD365@{Compte bloque / Date}, 
+    DropUnusedColumns@{Compte bloque / Date}
+),
+		{Champ personnalisé #4} = coalesce(
+    ClientD365@{Champ personnalisé #4}, 
+    DropUnusedColumns@{Champ personnalisé #4}
+),
+		Marche = Marche,
+		{Client / Commentaires} = {Client / Commentaires},
+		{Champ personnalisé #3} = coalesce(
+    ClientD365@{Champ personnalisé #3}, 
+    DropUnusedColumns@{Champ personnalisé #3}
+),
+		Telephone = coalesce(
+    ClientD365@Telephone, 
+    DropUnusedColumns@Telephone
+),
+		{Telephone portable} = coalesce(
+    ClientD365@{Telephone portable}, 
+    DropUnusedColumns@{Telephone portable}
+),
+		{E-mail} = coalesce(
+    ClientD365@{E-mail}, 
+    DropUnusedColumns@{E-mail}
+),
+		{Adresse (n° Rue)} = coalesce(
+    ClientD365@{Adresse (n° Rue)}, 
+    DropUnusedColumns@{Adresse (n° Rue)}
+),
+		{Adresse (Rue)} = coalesce(
+    ClientD365@{Adresse (Rue)}, 
+    DropUnusedColumns@{Adresse (Rue)}
+),
+		{Adresse (Boite postale)} = {Adresse (Boite postale)},
+		{Adresse (Departement / Region)} = coalesce(
+    ClientD365@{Adresse (Departement / Region)}, 
+    DropUnusedColumns@{Adresse (Departement / Region)}
+),
+		{Adresse (Code postal)} = coalesce(
+    ClientD365@{Adresse (Code postal)}, 
+    DropUnusedColumns@{Adresse (Code postal)}
+),
+		{Adresse (Ville)} = coalesce(
+    ClientD365@{Adresse (Ville)}, 
+    DropUnusedColumns@{Adresse (Ville)}
+),
+		{Adresse (Pays)} = coalesce(
+    ClientD365@{Adresse (Pays)}, 
+    DropUnusedColumns@{Adresse (Pays)}
+),
+		{Risque / Type de garantie} = {Risque / Type de garantie},
+		{Site internet} = coalesce(
+    ClientD365@{Site internet}, 
+    DropUnusedColumns@{Site Internet}
+)) ~> CreateCorrectValues
+SchoolValidationTable filter(toString(MYDSO_Account) == $MyDSO_Account) ~> SelectMyDSOAccount
+DropOldColumns, SelectMyDSOAccount exists(lower({Champ personnalisé #2}) == lower(School_Name),
+	negate:true,
+	broadcast: 'auto')~> AssertSchoolValidationFailed
+DropOldColumns, SelectMyDSOAccount exists(lower({Champ personnalisé #2}) == lower(School_Name),
+	negate:false,
+	broadcast: 'auto')~> AssertSchoolValidationSuccess
+AssertSchoolValidationSuccess sink(allowSchemaDrift: true,
+	validateSchema: false,
+	format: 'delimited',
+	fileSystem: 'interface-mydso',
+	folderPath: 'Working_Directory/OUT_MyDSO__Temp_Files',
+	rowDelimiter: ('\r\n'),
+	columnDelimiter: ';',
+	escapeChar: '\"',
+	quoteChar: '\"',
+	encodingName: 'WINDOWS-1252',
+	columnNamesAsHeader: true,
+	partitionFileNames:[($Filename)],
+	umask: 0022,
+	preCommands: [],
+	postCommands: [],
+	skipDuplicateMapInputs: true,
+	skipDuplicateMapOutputs: true,
+	saveOrder: 0,
+	partitionBy('hash', 1)) ~> ExportFile
+AssertSchoolValidationFailed sink(allowSchemaDrift: true,
+	validateSchema: false,
+	format: 'delimited',
+	fileSystem: 'interface-mydso',
+	folderPath: 'Working_Directory/OUT_MyDSO__Temp_FilesKO',
+	rowDelimiter: ('\r\n'),
+	columnDelimiter: ';',
+	escapeChar: '\"',
+	quoteChar: '\"',
+	encodingName: 'WINDOWS-1252',
+	columnNamesAsHeader: true,
+	partitionFileNames:[($Filename)],
+	umask: 0022,
+	preCommands: [],
+	postCommands: [],
+	skipDuplicateMapInputs: true,
+	skipDuplicateMapOutputs: true,
+	partitionBy('hash', 1)) ~> ExportFileKO

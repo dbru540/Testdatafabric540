@@ -1,0 +1,1848 @@
+{
+    "name": "SUB_MyDSO_PieceTransfo_Paris",
+    "properties": {
+        "activities": [
+            {
+                "name": "File_Transformation",
+                "type": "ExecuteDataFlow",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "dataflow": {
+                        "referenceName": "DF_Piece_ESGCVPARIS",
+                        "type": "DataFlowReference",
+                        "parameters": {
+                            "Filename": {
+                                "value": "'@{pipeline().parameters.FileName}'",
+                                "type": "Expression"
+                            },
+                            "MyDSO_Account": {
+                                "value": "'@{pipeline().parameters.MyDSO_Account}'",
+                                "type": "Expression"
+                            }
+                        }
+                    },
+                    "integrationRuntime": {
+                        "referenceName": "AzureIntegrationRuntimeContinuous",
+                        "type": "IntegrationRuntimeReference"
+                    },
+                    "traceLevel": "Fine",
+                    "runConcurrently": true
+                }
+            },
+            {
+                "name": "Error_Email File_Transformation_Failed",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "File_Transformation",
+                        "dependencyConditions": [
+                            "Failed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "PIPE_Email_Alerts",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": false,
+                    "parameters": {
+                        "Filename": {
+                            "value": "@pipeline().parameters.FileName",
+                            "type": "Expression"
+                        },
+                        "Failed_Activity_Description": "La transformation du fichier a échoué",
+                        "Error_Log": {
+                            "value": "@activity('File_Transformation').Error.Message",
+                            "type": "Expression"
+                        },
+                        "Pipeline_Time": {
+                            "value": "@pipeline().TriggerTime",
+                            "type": "Expression"
+                        },
+                        "Recipients": {
+                            "value": "@pipeline().globalParameters.LogicApp_MyDSONotifications_EmailRecipients",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "Send_Files To_MyDSO",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "NEW_Files Ignore_Empty",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "PIPE_MyDSO_SendFilesToMyDSOSFTP",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": false,
+                    "parameters": {
+                        "FileName": {
+                            "value": "@pipeline().parameters.FileName",
+                            "type": "Expression"
+                        },
+                        "MyDSO_Account": {
+                            "value": "@pipeline().parameters.MyDSO_Account",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "NEW_Files CheckIfEmpty",
+                "type": "Lookup",
+                "dependsOn": [
+                    {
+                        "activity": "File_Transformation",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "DelimitedTextSource",
+                        "storeSettings": {
+                            "type": "AzureBlobFSReadSettings",
+                            "recursive": false,
+                            "enablePartitionDiscovery": false
+                        },
+                        "formatSettings": {
+                            "type": "DelimitedTextReadSettings"
+                        }
+                    },
+                    "dataset": {
+                        "referenceName": "OUT_Datalake_Write_Temp",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "folderPath": "Working_Directory/OUT_MyDSO__Temp_Files",
+                            "fileName": {
+                                "value": "@pipeline().parameters.FileName",
+                                "type": "Expression"
+                            }
+                        }
+                    },
+                    "firstRowOnly": true
+                }
+            },
+            {
+                "name": "NEWError_Files CheckIfEmpty",
+                "type": "Lookup",
+                "dependsOn": [
+                    {
+                        "activity": "File_Transformation",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "DelimitedTextSource",
+                        "storeSettings": {
+                            "type": "AzureBlobFSReadSettings",
+                            "recursive": false,
+                            "enablePartitionDiscovery": false
+                        },
+                        "formatSettings": {
+                            "type": "DelimitedTextReadSettings"
+                        }
+                    },
+                    "dataset": {
+                        "referenceName": "OUT_Datalake_Write_Temp",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "folderPath": "Working_Directory/OUT_MyDSO__Temp_FilesKO",
+                            "fileName": {
+                                "value": "@pipeline().parameters.FileName",
+                                "type": "Expression"
+                            }
+                        }
+                    },
+                    "firstRowOnly": true
+                }
+            },
+            {
+                "name": "NEW_Files Ignore_Empty",
+                "type": "IfCondition",
+                "dependsOn": [
+                    {
+                        "activity": "NEW_Files CheckIfEmpty",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@contains(\n    activity('NEW_Files CheckIfEmpty').output,\n    'firstRow'\n)",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "Save_NEW_File ADLSFolder",
+                            "type": "Copy",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "DelimitedTextSource",
+                                    "storeSettings": {
+                                        "type": "AzureBlobFSReadSettings",
+                                        "recursive": false,
+                                        "enablePartitionDiscovery": false
+                                    },
+                                    "formatSettings": {
+                                        "type": "DelimitedTextReadSettings"
+                                    }
+                                },
+                                "sink": {
+                                    "type": "DelimitedTextSink",
+                                    "storeSettings": {
+                                        "type": "AzureBlobFSWriteSettings"
+                                    },
+                                    "formatSettings": {
+                                        "type": "DelimitedTextWriteSettings",
+                                        "quoteAllText": true,
+                                        "fileExtension": ".csv"
+                                    }
+                                },
+                                "enableStaging": false,
+                                "translator": {
+                                    "type": "TabularTranslator",
+                                    "mappings": [
+                                        {
+                                            "source": {
+                                                "name": "Code client *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Code client *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Montant initial HT",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Montant initial HT\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Montant initial TTC *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Montant initial TTC *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Montant restant HT",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Montant restant HT\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Montant restant TTC",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Montant restant TTC\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Nom affaire",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Nom affaire\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Devise *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Devise *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Date echeance *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Date echeance *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Date emission *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Date emission *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Date commande",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Date commande\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Date paiement",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Date paiement\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Type de piece ERP",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Type de piece ERP\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Numero dossier",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Numero dossier\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Numero piece *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Numero piece *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Numero commande",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Numero commande\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Acteur ADV",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Acteur ADV\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Commercial",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Commercial\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Sens de l'écriture",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Sens de l'écriture\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Type de piece *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Type de piece *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Identifiant piece unique",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Identifiant piece unique\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #1",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #1\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #2",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #2\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #3",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #3\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #4",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #4\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #5",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #5\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #6",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #6\"",
+                                                "physicalType": "String"
+                                            }
+                                        }
+                                    ],
+                                    "typeConversion": true,
+                                    "typeConversionSettings": {
+                                        "allowDataTruncation": false,
+                                        "treatBooleanAsNumber": false,
+                                        "culture": "fr-fr"
+                                    }
+                                }
+                            },
+                            "inputs": [
+                                {
+                                    "referenceName": "OUT_Datalake_Write_Temp",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "folderPath": "Working_Directory/OUT_MyDSO__Temp_Files",
+                                        "fileName": {
+                                            "value": "@pipeline().parameters.FileName",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                }
+                            ],
+                            "outputs": [
+                                {
+                                    "referenceName": "OUT_Datalake_2_Datalake_Write_NEW",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "folderPath": "Working_Directory/OUT_MyDSO_New_Files",
+                                        "fileName": {
+                                            "value": "@pipeline().parameters.FileName",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Error_Email NEW_To_SFTP",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [
+                                {
+                                    "activity": "Save_NEW_File SFTPFolder",
+                                    "dependencyConditions": [
+                                        "Failed"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "PIPE_Email_Alerts",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": false,
+                                "parameters": {
+                                    "Filename": {
+                                        "value": "@pipeline().parameters.FileName",
+                                        "type": "Expression"
+                                    },
+                                    "Failed_Activity_Description": "Impossible de sauvegarder le fichier transformé sur le SFTP (Dossier 'New')",
+                                    "Error_Log": {
+                                        "value": "@activity('Save_NEW_File SFTPFolder').Error.Message",
+                                        "type": "Expression"
+                                    },
+                                    "Pipeline_Time": {
+                                        "value": "@pipeline().TriggerTime",
+                                        "type": "Expression"
+                                    },
+                                    "Recipients": {
+                                        "value": "@pipeline().globalParameters.LogicApp_MyDSONotifications_EmailRecipients",
+                                        "type": "Expression"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "name": "Save_NEW_File SFTPFolder",
+                            "type": "Copy",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "DelimitedTextSource",
+                                    "storeSettings": {
+                                        "type": "AzureBlobFSReadSettings",
+                                        "recursive": false,
+                                        "enablePartitionDiscovery": false
+                                    },
+                                    "formatSettings": {
+                                        "type": "DelimitedTextReadSettings"
+                                    }
+                                },
+                                "sink": {
+                                    "type": "DelimitedTextSink",
+                                    "storeSettings": {
+                                        "type": "SftpWriteSettings",
+                                        "operationTimeout": "01:00:00",
+                                        "useTempFileRename": true
+                                    },
+                                    "formatSettings": {
+                                        "type": "DelimitedTextWriteSettings",
+                                        "quoteAllText": true,
+                                        "fileExtension": ".csv"
+                                    }
+                                },
+                                "enableStaging": false,
+                                "translator": {
+                                    "type": "TabularTranslator",
+                                    "mappings": [
+                                        {
+                                            "source": {
+                                                "name": "Code client *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Code client *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Montant initial HT",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Montant initial HT\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Montant initial TTC *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Montant initial TTC *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Montant restant HT",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Montant restant HT\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Montant restant TTC",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Montant restant TTC\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Nom affaire",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Nom affaire\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Devise *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Devise *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Date echeance *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Date echeance *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Date emission *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Date emission *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Date commande",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Date commande\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Date paiement",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Date paiement\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Type de piece ERP",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Type de piece ERP\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Numero dossier",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Numero dossier\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Numero piece *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Numero piece *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Numero commande",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Numero commande\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Acteur ADV",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Acteur ADV\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Commercial",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Commercial\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Sens de l'écriture",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Sens de l'écriture\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Type de piece *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Type de piece *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Identifiant piece unique",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Identifiant piece unique\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #1",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #1\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #2",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #2\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #3",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #3\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #4",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #4\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #5",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #5\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #6",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #6\"",
+                                                "physicalType": "String"
+                                            }
+                                        }
+                                    ],
+                                    "typeConversion": true,
+                                    "typeConversionSettings": {
+                                        "allowDataTruncation": false,
+                                        "treatBooleanAsNumber": false,
+                                        "culture": "fr-fr"
+                                    }
+                                }
+                            },
+                            "inputs": [
+                                {
+                                    "referenceName": "OUT_Datalake_Write_Temp",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "folderPath": "Working_Directory/OUT_MyDSO__Temp_Files",
+                                        "fileName": {
+                                            "value": "@pipeline().parameters.FileName",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                }
+                            ],
+                            "outputs": [
+                                {
+                                    "referenceName": "OUT_Datalake_2_SFTP_Write_NEW",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "SFTP_Environment": {
+                                            "value": "@pipeline().globalParameters.SFTP_Environment",
+                                            "type": "Expression"
+                                        },
+                                        "Filename": {
+                                            "value": "@pipeline().parameters.FileName",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "NEWError_Files Ignore_Empty",
+                "type": "IfCondition",
+                "dependsOn": [
+                    {
+                        "activity": "NEWError_Files CheckIfEmpty",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@contains(\n    activity('NEWError_Files CheckIfEmpty').output,\n    'firstRow'\n)",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "Save_NEWError_File ADLSFolder",
+                            "type": "Copy",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "DelimitedTextSource",
+                                    "storeSettings": {
+                                        "type": "AzureBlobFSReadSettings",
+                                        "recursive": false,
+                                        "enablePartitionDiscovery": false
+                                    },
+                                    "formatSettings": {
+                                        "type": "DelimitedTextReadSettings"
+                                    }
+                                },
+                                "sink": {
+                                    "type": "DelimitedTextSink",
+                                    "storeSettings": {
+                                        "type": "AzureBlobFSWriteSettings"
+                                    },
+                                    "formatSettings": {
+                                        "type": "DelimitedTextWriteSettings",
+                                        "quoteAllText": true,
+                                        "fileExtension": ".csv"
+                                    }
+                                },
+                                "enableStaging": false,
+                                "translator": {
+                                    "type": "TabularTranslator",
+                                    "mappings": [
+                                        {
+                                            "source": {
+                                                "name": "Code client *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Code client *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Montant initial HT",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Montant initial HT\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Montant initial TTC *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Montant initial TTC *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Montant restant HT",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Montant restant HT\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Montant restant TTC",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Montant restant TTC\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Nom affaire",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Nom affaire\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Devise *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Devise *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Date echeance *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Date echeance *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Date emission *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Date emission *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Date commande",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Date commande\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Date paiement",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Date paiement\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Type de piece ERP",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Type de piece ERP\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Numero dossier",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Numero dossier\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Numero piece *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Numero piece *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Numero commande",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Numero commande\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Acteur ADV",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Acteur ADV\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Commercial",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Commercial\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Sens de l'écriture",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Sens de l'écriture\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Type de piece *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Type de piece *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Identifiant piece unique",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Identifiant piece unique\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #1",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #1\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #2",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #2\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #3",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #3\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #4",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #4\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #5",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #5\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #6",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #6\"",
+                                                "physicalType": "String"
+                                            }
+                                        }
+                                    ],
+                                    "typeConversion": true,
+                                    "typeConversionSettings": {
+                                        "allowDataTruncation": false,
+                                        "treatBooleanAsNumber": false,
+                                        "culture": "fr-fr"
+                                    }
+                                }
+                            },
+                            "inputs": [
+                                {
+                                    "referenceName": "OUT_Datalake_Write_Temp",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "folderPath": "Working_Directory/OUT_MyDSO__Temp_FilesKO",
+                                        "fileName": {
+                                            "value": "@pipeline().parameters.FileName",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                }
+                            ],
+                            "outputs": [
+                                {
+                                    "referenceName": "OUT_Datalake_2_Datalake_Write_NEW",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "folderPath": "Working_Directory/OUT_MyDSO_New_FilesKO",
+                                        "fileName": {
+                                            "value": "@pipeline().parameters.FileName",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Error_Email NEWError_To_SFTP",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [
+                                {
+                                    "activity": "Save_NEWError_File SFTPFolder",
+                                    "dependencyConditions": [
+                                        "Failed"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "PIPE_Email_Alerts",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": false,
+                                "parameters": {
+                                    "Filename": {
+                                        "value": "@pipeline().parameters.FileName",
+                                        "type": "Expression"
+                                    },
+                                    "Failed_Activity_Description": "Impossible de sauvegarder le fichier transformé sur le SFTP (Dossier 'NewKO')",
+                                    "Error_Log": {
+                                        "value": "@activity('Save_NEWError_File SFTPFolder').Error.Message",
+                                        "type": "Expression"
+                                    },
+                                    "Pipeline_Time": {
+                                        "value": "@pipeline().TriggerTime",
+                                        "type": "Expression"
+                                    },
+                                    "Recipients": {
+                                        "value": "@pipeline().globalParameters.LogicApp_MyDSONotifications_EmailRecipients",
+                                        "type": "Expression"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "name": "Save_NEWError_File SFTPFolder",
+                            "type": "Copy",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "DelimitedTextSource",
+                                    "storeSettings": {
+                                        "type": "AzureBlobFSReadSettings",
+                                        "recursive": false,
+                                        "enablePartitionDiscovery": false
+                                    },
+                                    "formatSettings": {
+                                        "type": "DelimitedTextReadSettings"
+                                    }
+                                },
+                                "sink": {
+                                    "type": "DelimitedTextSink",
+                                    "storeSettings": {
+                                        "type": "SftpWriteSettings",
+                                        "operationTimeout": "01:00:00",
+                                        "useTempFileRename": true
+                                    },
+                                    "formatSettings": {
+                                        "type": "DelimitedTextWriteSettings",
+                                        "quoteAllText": true,
+                                        "fileExtension": ".csv"
+                                    }
+                                },
+                                "enableStaging": false,
+                                "translator": {
+                                    "type": "TabularTranslator",
+                                    "mappings": [
+                                        {
+                                            "source": {
+                                                "name": "Code client *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Code client *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Montant initial HT",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Montant initial HT\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Montant initial TTC *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Montant initial TTC *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Montant restant HT",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Montant restant HT\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Montant restant TTC",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Montant restant TTC\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Nom affaire",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Nom affaire\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Devise *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Devise *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Date echeance *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Date echeance *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Date emission *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Date emission *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Date commande",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Date commande\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Date paiement",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Date paiement\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Type de piece ERP",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Type de piece ERP\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Numero dossier",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Numero dossier\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Numero piece *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Numero piece *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Numero commande",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Numero commande\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Acteur ADV",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Acteur ADV\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Commercial",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Commercial\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Sens de l'écriture",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Sens de l'écriture\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Type de piece *",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Type de piece *\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Identifiant piece unique",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Identifiant piece unique\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #1",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #1\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #2",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #2\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #3",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #3\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #4",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #4\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #5",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #5\"",
+                                                "physicalType": "String"
+                                            }
+                                        },
+                                        {
+                                            "source": {
+                                                "name": "Champ personnalisé #6",
+                                                "type": "String",
+                                                "physicalType": "String"
+                                            },
+                                            "sink": {
+                                                "name": "\"Champ personnalisé #6\"",
+                                                "physicalType": "String"
+                                            }
+                                        }
+                                    ],
+                                    "typeConversion": true,
+                                    "typeConversionSettings": {
+                                        "allowDataTruncation": false,
+                                        "treatBooleanAsNumber": false,
+                                        "culture": "fr-fr"
+                                    }
+                                }
+                            },
+                            "inputs": [
+                                {
+                                    "referenceName": "OUT_Datalake_Write_Temp",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "folderPath": "Working_Directory/OUT_MyDSO__Temp_FilesKO",
+                                        "fileName": {
+                                            "value": "@pipeline().parameters.FileName",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                }
+                            ],
+                            "outputs": [
+                                {
+                                    "referenceName": "OUT_Datalake_2_SFTP_Write_NEWError",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "SFTP_Environment": {
+                                            "value": "@pipeline().globalParameters.SFTP_Environment",
+                                            "type": "Expression"
+                                        },
+                                        "Filename": {
+                                            "value": "@pipeline().parameters.FileName",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Error_Email Assert_Failed",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [
+                                {
+                                    "activity": "Save_NEWError_File SFTPFolder",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                {
+                                    "activity": "Save_NEWError_File ADLSFolder",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "PIPE_Email_Alerts",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": false,
+                                "parameters": {
+                                    "Filename": {
+                                        "value": "@pipeline().parameters.FileName",
+                                        "type": "Expression"
+                                    },
+                                    "Failed_Activity_Description": "Présence d'écoles non valides dans le fichier.",
+                                    "Error_Log": "Des lignes contenant des écoles non valides ont été trouvées dans le fichier. \nLes lignes en erreur ont été écartées du fichier original, et placées dans le dossier NewKO.",
+                                    "Pipeline_Time": {
+                                        "value": "@pipeline().TriggerTime",
+                                        "type": "Expression"
+                                    },
+                                    "Recipients": {
+                                        "value": "@pipeline().globalParameters.LogicApp_MyDSONotifications_EmailRecipients",
+                                        "type": "Expression"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        ],
+        "parameters": {
+            "FileName": {
+                "type": "string",
+                "defaultValue": "piece_ggef_ESGCV - PARIS.csv"
+            },
+            "MyDSO_Account": {
+                "type": "string",
+                "defaultValue": "ESGCV - PARIS"
+            }
+        },
+        "folder": {
+            "name": "3_MyDSO_Files_Export/SUB_FilesTransformations"
+        },
+        "annotations": [],
+        "lastPublishTime": "2023-01-10T14:29:41Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

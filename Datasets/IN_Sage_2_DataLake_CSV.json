@@ -1,0 +1,34 @@
+{
+    "name": "IN_Sage_2_DataLake_CSV",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "ServeurSFTP",
+            "type": "LinkedServiceReference"
+        },
+        "parameters": {
+            "SFTP_Environment": {
+                "type": "string"
+            }
+        },
+        "folder": {
+            "name": "2_Sage_Files_Import"
+        },
+        "annotations": [],
+        "type": "DelimitedText",
+        "typeProperties": {
+            "location": {
+                "type": "SftpLocation",
+                "folderPath": {
+                    "value": "@concat(dataset().SFTP_Environment,'/RecouvrementOld2Datalake')",
+                    "type": "Expression"
+                }
+            },
+            "columnDelimiter": ";",
+            "escapeChar": "\\",
+            "firstRowAsHeader": false,
+            "quoteChar": "\""
+        },
+        "schema": []
+    },
+    "type": "Microsoft.DataFactory/factories/datasets"
+}

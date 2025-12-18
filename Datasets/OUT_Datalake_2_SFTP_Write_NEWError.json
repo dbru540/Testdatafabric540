@@ -1,0 +1,42 @@
+{
+    "name": "OUT_Datalake_2_SFTP_Write_NEWError",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "ServeurSFTP",
+            "type": "LinkedServiceReference"
+        },
+        "parameters": {
+            "SFTP_Environment": {
+                "type": "string"
+            },
+            "Filename": {
+                "type": "string"
+            }
+        },
+        "folder": {
+            "name": "3_MyDSO_Files_Export/OUT_MyDSO_FTP/3_Export to NEW SFTP"
+        },
+        "annotations": [],
+        "type": "DelimitedText",
+        "typeProperties": {
+            "location": {
+                "type": "SftpLocation",
+                "fileName": {
+                    "value": "@dataset().Filename",
+                    "type": "Expression"
+                },
+                "folderPath": {
+                    "value": "@concat(dataset().SFTP_Environment,'/RecouvrementNew2GalileoKO')",
+                    "type": "Expression"
+                }
+            },
+            "columnDelimiter": ";",
+            "encodingName": "WINDOWS-1252",
+            "escapeChar": "\"",
+            "firstRowAsHeader": true,
+            "quoteChar": "\""
+        },
+        "schema": []
+    },
+    "type": "Microsoft.DataFactory/factories/datasets"
+}
